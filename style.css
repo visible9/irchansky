@@ -1,0 +1,11 @@
+/*
+Theme Name: IR4 Single Page
+Theme URI: https://ir4-single-page.local/
+Author: IR4
+Description: Minimal single-page WordPress starter theme. Sections are built as shortcodes and placed on the front page.
+Requires PHP: 7.4
+Version: 1.0
+Text Domain: ir4-single-page
+*/
+
+/* ALL THEME STYLES LIVE IN theme-styles.php (printed inline in wp_head) */
