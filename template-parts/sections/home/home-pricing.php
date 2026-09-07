@@ -27,6 +27,10 @@
 		align-items: stretch;
 	}
 
+	.home-pricing .pricing-grid:where(:has(> :nth-child(1):nth-last-child(1))) {
+		--columns: 1;
+	}
+
 	.home-pricing .pricing-grid:where(:has(> :nth-child(1):nth-last-child(2))) {
 		--columns: 2;
 	}

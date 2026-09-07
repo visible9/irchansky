@@ -114,4 +114,13 @@ function home_faq($atts, $content=null){
 add_shortcode('home_faq', 'home_faq');
 
 
+/******ABOUT PAGE SHORTCODES*******/
+function about_rev($atts, $content=null){
+	ob_start();
+	include(locate_template('template-parts/pages/about/section-about-rev.php'));
+	return ob_get_clean();
+}
+add_shortcode('about_rev', 'about_rev');
+
+
 /******CUSTOM SHORTCODES*******/

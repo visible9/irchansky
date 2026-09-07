@@ -432,9 +432,14 @@
 
 	.bg-grid {
 		position: absolute;
-		inset: 0;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		width: 100vw;
 		z-index: 1;
 		pointer-events: none;
+		background-position: 0 0;
 		background-image: repeating-linear-gradient(90deg, color-mix(in oklab, var(--color-1) 7%, transparent) 0px, color-mix(in oklab, var(--color-1) 7%, transparent) 1px, transparent 1px, transparent 120px), repeating-linear-gradient(0deg, color-mix(in oklab, var(--color-1) 7%, transparent) 0px, color-mix(in oklab, var(--color-1) 7%, transparent) 1px, transparent 1px, transparent 120px);
 	}
 

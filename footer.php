@@ -7,6 +7,13 @@
 
 $language = get_translation_data()['language'];
 $home_id = 'page' === get_option('show_on_front') ? (int) get_option('page_on_front') : 0;
+$contact_home_id = $home_id;
+if ('ukrainian' === $language && $home_id) {
+	$home_translation = (int) get_post_meta($home_id, 'has_translation', true);
+	if ($home_translation) {
+		$contact_home_id = $home_translation;
+	}
+}
 ?>
 
 </div><!-- end #main-content -->
@@ -35,21 +42,21 @@ $home_id = 'page' === get_option('show_on_front') ? (int) get_option('page_on_fr
 					?>
 				</div>
 
-				<?php if (section_field('crb_contact_email', 'hello@example.com') || section_field('crb_contact_phone', '+46 31 123 45 67') || section_field('crb_contact_address', 'Kyiv, Ukraine · 9am–6pm')) { ?>
+				<?php if (section_field('crb_contact_email', 'hello@example.com', $contact_home_id) || section_field('crb_contact_phone', '+46 31 123 45 67', $contact_home_id) || section_field('crb_contact_address', 'Kyiv, Ukraine · 9am–6pm', $contact_home_id)) { ?>
 					<div class="footer-col footer-contacts-col">
 						<span class="footer-col-title"><?= 'english' === $language ? 'Contacts' : "Контакти"; ?></span>
 						<div class="footer-contacts">
 
-							<?php if (section_field('crb_contact_email', 'hello@example.com')) { ?>
-								<a href="mailto:<?= section_field('crb_contact_email', 'hello@example.com'); ?>"><?= section_field('crb_contact_email', 'hello@example.com'); ?></a>
+							<?php if (section_field('crb_contact_email', 'hello@example.com', $contact_home_id)) { ?>
+								<a href="mailto:<?= section_field('crb_contact_email', 'hello@example.com', $contact_home_id); ?>"><?= section_field('crb_contact_email', 'hello@example.com', $contact_home_id); ?></a>
 							<?php } ?>
 
-							<?php if (section_field('crb_contact_phone', '+46 31 123 45 67')) { ?>
-								<a href="tel:<?= preg_replace('/[^0-9+]/', '', section_field('crb_contact_phone', '+46 31 123 45 67')); ?>"><?= section_field('crb_contact_phone', '+46 31 123 45 67'); ?></a>
+							<?php if (section_field('crb_contact_phone', '+46 31 123 45 67', $contact_home_id)) { ?>
+								<a href="tel:<?= preg_replace('/[^0-9+]/', '', section_field('crb_contact_phone', '+46 31 123 45 67', $contact_home_id)); ?>"><?= section_field('crb_contact_phone', '+46 31 123 45 67', $contact_home_id); ?></a>
 							<?php } ?>
 
-							<?php if (section_field('crb_contact_address', 'Kyiv, Ukraine · 9am–6pm')) { ?>
-								<span><?= section_field('crb_contact_address', 'Kyiv, Ukraine · 9am–6pm'); ?></span>
+							<?php if (section_field('crb_contact_address', 'Kyiv, Ukraine · 9am–6pm', $contact_home_id)) { ?>
+								<span><?= section_field('crb_contact_address', 'Kyiv, Ukraine · 9am–6pm', $contact_home_id); ?></span>
 							<?php } ?>
 
 						</div>

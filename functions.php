@@ -6,6 +6,7 @@ function add_theme_styles()
 add_action('wp_head', 'add_theme_styles');
 
 include(locate_template('shortcodes.php'));
+include(locate_template('includes/editor-sections.php'));
 
 
 /**
@@ -27,6 +28,184 @@ function register_theme_fields()
 	include(locate_template('includes/fields.php'));
 }
 add_action('carbon_fields_register_fields', 'register_theme_fields');
+
+/**
+ * Should this section's tab be part of the Page Sections metabox?
+ *
+ * True when the page being edited holds one of the shortcodes that render the
+ * section, so the client only ever sees the tabs for the sections actually on
+ * that page. $shortcodes is one tag or a list of them; $prefix is the
+ * crb_<section> prefix the section's fields share.
+ *
+ * Also true when the section already holds content, whatever the shortcode
+ * says. That part is not a convenience, it is what keeps the data safe: Carbon
+ * Fields deletes every field it knows about that is missing from the submitted
+ * form, so a tab that is registered but never rendered would wipe the section
+ * on the next save. Keeping filled sections registered means a hidden tab
+ * always covers meta that is empty anyway.
+ *
+ * Everything is registered when the edited page cannot be resolved, so no field
+ * is ever unreachable on a screen this does not know about - a brand new page
+ * among them, since it has no saved content to read yet.
+ */
+function page_uses_section($shortcodes, $prefix)
+{
+	$page = edited_page();
+	$reason = 'no page resolved, so every tab is registered';
+	if ($page) {
+		$reason = '';
+		foreach ((array) $shortcodes as $shortcode) {
+			if (has_shortcode($page->post_content, $shortcode)) {
+				$reason = 'the content holds [' . $shortcode . ']';
+				break;
+			}
+		}
+		/*section_has_content() reads the crb_<section>_ prefix off a field name, so any name under the section answers for all of them*/
+		if (!$reason && section_has_content($prefix . '_name', $page->ID)) {
+			$reason = 'the section already holds saved content';
+		}
+	}
+	$registered = (bool) $reason;
+	page_section_decisions($prefix, ($registered ? 'yes - ' : 'no - ') . ($reason ? $reason : 'no shortcode on the page and nothing saved'));
+	return $registered;
+}
+
+/**
+ * Where each shortcode on the edited page first appears in its content, keyed
+ * by tag name. Powers the tab order in includes/fields.php, so the metabox
+ * lists sections in the same order the client dropped their shortcodes in,
+ * not the fixed order they are defined in the file.
+ */
+function page_shortcode_positions()
+{
+	static $positions = null;
+	if ($positions !== null) {
+		return $positions;
+	}
+	$positions = array();
+	$page = edited_page();
+	if ($page) {
+		preg_match_all('/' . get_shortcode_regex() . '/s', $page->post_content, $matches, PREG_OFFSET_CAPTURE);
+		foreach ($matches[2] as $match) {
+			list($tag, $offset) = $match;
+			if (!isset($positions[$tag])) {
+				$positions[$tag] = $offset;
+			}
+		}
+	}
+	return $positions;
+}
+
+/**
+ * Earliest position any of a section's shortcodes appear at, or null when none
+ * are in the content. usort() sinks null to the end, which is what keeps a
+ * section that only survives via section_has_content() (no shortcode left on
+ * the page) trailing after everything that is actually there.
+ */
+function section_position($shortcodes)
+{
+	$positions = page_shortcode_positions();
+	$min = null;
+	foreach ((array) $shortcodes as $shortcode) {
+		if (isset($positions[$shortcode])) {
+			$min = $min === null ? $positions[$shortcode] : min($min, $positions[$shortcode]);
+		}
+	}
+	return $min;
+}
+
+/**
+ * Keeps a note of what page_uses_section() decided for each section, so the
+ * sections_debug report below can explain the metabox rather than guess at it.
+ * Called with arguments it records one decision, called without it returns them all.
+ */
+function page_section_decisions($prefix = '', $reason = '')
+{
+	static $decisions = array();
+	if ($prefix) {
+		$decisions[$prefix] = $reason;
+	}
+	return $decisions;
+}
+
+/**
+ * The page currently open in the editor, or null when there is no saved page
+ * behind the request. Fields are registered long before the global $post
+ * exists, so the id comes off the request itself: post.php passes it as a query
+ * argument on both the initial load and the block editor's metabox reload, the
+ * classic editor posts it back as post_ID.
+ *
+ * Outside the admin this is always null, which registers every field. That is
+ * required rather than merely safe: carbon_get_post_meta() resolves a value
+ * through the registered containers, so a field the front end never registered
+ * would read back empty.
+ */
+function edited_page()
+{
+	static $page = false;
+	if ($page !== false) {
+		return $page;
+	}
+	$page = null;
+	if (!is_admin()) {
+		return $page;
+	}
+	$post_id = 0;
+	foreach (array('post_ID', 'post') as $key) {
+		if (isset($_REQUEST[$key]) && (int) $_REQUEST[$key]) {
+			$post_id = (int) $_REQUEST[$key];
+			break;
+		}
+	}
+	if ($post_id) {
+		$post = get_post($post_id);
+		if ($post && $post->post_type === 'page') {
+			$page = $post;
+		}
+	}
+	return $page;
+}
+
+/**
+ * Temporary: add &sections_debug=1 to a page edit URL to see which tabs the
+ * filter kept and why, and when the server last received the three files that
+ * make the decision. Delete this function and its hook once the metabox behaves.
+ */
+function page_sections_report()
+{
+	if (!isset($_GET['sections_debug']) || !current_user_can('manage_options')) {
+		return;
+	}
+	$page = edited_page();
+	$report = '<h2>Page Sections filter</h2><p>Edited page: ' . ($page ? '#' . $page->ID . ' "' . $page->post_title . '"' : 'not resolved from this request') . '</p>';
+
+	$report .= '<p>Shortcodes found in the content: ';
+	$found = array();
+	if ($page) {
+		foreach (array_keys($GLOBALS['shortcode_tags']) as $tag) {
+			if (has_shortcode($page->post_content, $tag)) {
+				$found[] = '[' . $tag . ']';
+			}
+		}
+	}
+	$report .= ($found ? implode(' ', $found) : 'none') . '</p>';
+
+	$report .= '<table cellpadding="6" border="1" style="border-collapse:collapse"><tr><th>Section</th><th>Tab registered</th></tr>';
+	foreach (page_section_decisions() as $prefix => $reason) {
+		$report .= '<tr><td>' . $prefix . '</td><td>' . $reason . '</td></tr>';
+	}
+	$report .= '</table>';
+
+	$report .= '<p>Files on the server:</p><ul>';
+	foreach (array('functions.php', 'shortcodes.php', 'includes/fields.php') as $file) {
+		$path = get_template_directory() . '/' . $file;
+		$report .= '<li>' . $file . ' - ' . (file_exists($path) ? 'last changed ' . gmdate('Y-m-d H:i', filemtime($path)) . ' UTC' : 'missing') . '</li>';
+	}
+	$report .= '</ul><p>[about_rev] registered: ' . (shortcode_exists('about_rev') ? 'yes' : 'no') . '</p>';
+
+	wp_die($report, 'Page Sections filter', array('response' => 200, 'back_link' => true));
+}
+add_action('admin_head', 'page_sections_report');
 
 /**
  * Reads a section field. Keeps the templates flat.

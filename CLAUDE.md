@@ -29,6 +29,7 @@ template-parts/sections/home/home-banner.php   (markup + <style> + fields)
 | `includes/fields.php`                                             | All Carbon Fields definitions.                                                                                                                                                                    |
 | `includes/theme-changes.php`                                      | Global vanilla JS: lazy loading, scroll animations, mobile menu close. Hooked to `wp_footer`.                                                                                                     |
 | `template-parts/sections/home/*.php`                              | The 14 home sections.                                                                                                                                                                             |
+| `template-parts/pages/<page>/*.php`                               | Sections belonging to one inner page rather than to the home page. `about/section-about-rev.php` is the About page's take on the About section and reads the same `crb_about_*` fields, which are per page anyway. |
 | `header.php` / `footer.php`                                       | Sticky masthead and dark footer.                                                                                                                                                                  |
 | `index.php`, `archive.php`, `search.php`, `single.php`, `404.php` | Blog fallbacks. `blog-styles.php` and `single-blog-styles.php` hold their CSS.                                                                                                                    |
 | `fonts/`                                                          | Self-hosted, one subfolder per family: `space-grotesk/` (heading, variable 500–700, latin only - no Cyrillic exists for this family), `manrope/` (body, variable 400–700, latin + cyrillic) and `jetbrains-mono/` (accent/mono, variable 400–500, latin + cyrillic). `site-fonts.css` declares all `@font-face` rules. Nothing is fetched from Google at runtime.                                                                                                |
@@ -41,6 +42,8 @@ template-parts/sections/home/home-banner.php   (markup + <style> + fields)
 ## Registered shortcodes
 
 `home_banner`, `home_services`, `home_about`, `home_team`, `home_cta`, `home_results`, `home_testimonials`, `home_social`, `home_news`, `home_contact`, `home_mission`, `home_pricing`, `home_portfolio`, `home_faq`
+
+`about_rev` renders the About page's About section from `template-parts/pages/about/`. It shares the `crb_about_*` fields with `home_about`, so both tags are listed on that one tab.
 
 `home_banner`, `home_services`, `home_about`, `home_team`, `home_mission`, `home_results`, `home_portfolio`, `home_news`, `home_testimonials`, `home_cta`, `home_faq`, `home_pricing` and `home_contact` are built. The rest are empty stubs that still carry an older `apply_*_styles()` / `wp_footer` pattern — replace it with the inline `<style>` pattern described below when you build them.
 
@@ -184,6 +187,12 @@ Social links go through `social_networks()` in `functions.php` — one map holdi
 A section can also draw its content from WordPress instead of from fields — `home_news` is the reference. It lists the three latest posts with `get_posts()` and falls back to three hardcoded demo cards while the blog is still empty, so the fields only cover the heading and the button. Real posts without a featured image fall back to a theme placeholder from `images/`.
 
 Everything lives in one `Page Sections` container with `->set_layout('tabbed-vertical')` and an `add_tab()` per section, so 14 sections do not become 14 metaboxes. Add a tab, never a second container.
+
+Each `add_tab()` is wrapped in `if(page_uses_section($shortcodes, $prefix))`, so the metabox only carries the tabs for the shortcodes that page actually holds — a page with three sections shows three tabs instead of all fourteen. `$shortcodes` is the tag that renders the section, or an array of tags when the same fields serve more than one section; `$prefix` is the `crb_<section>` prefix those fields share. The `Footer` tab belongs to no shortcode and stays unconditional, which also keeps the container from ever registering zero fields.
+
+The prefix is not decoration. Carbon Fields deletes every field it knows about that is missing from the submitted form, so a tab that were registered but not rendered would wipe its section on the next save. `page_uses_section()` therefore also returns true whenever `section_has_content()` says the section already holds something — a hidden tab is only ever a tab with nothing to lose. It returns true for everything when the edited page cannot be resolved from the request, a page being created among them, since fields are registered long before the global `$post` exists.
+
+The block editor reloads the metabox on save, so a tab appears on the save that adds its shortcode to the content, not while the block is still unsaved.
 
 Gotcha: Carbon Fields stores meta with a leading underscore. `get_post_meta($id, 'crb_banner_title')` returns nothing — the real key is `_crb_banner_title`.
 
