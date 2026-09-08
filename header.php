@@ -11,6 +11,10 @@ $language = $translation['language'];
 $english_page = $translation['english_page'];
 $translated_page = $translation['translated_page'];
 
+$contact_url = 'english' === $language
+	? get_home_url() . '/contact/'
+	: get_home_url() . '/kontakti/';
+
 ?>
 <!doctype html>
 <html lang="<?= 'ukrainian' === $language ? 'uk' : 'en'; ?>">
@@ -54,7 +58,7 @@ $translated_page = $translation['translated_page'];
 						));
 						?>
 
-						<a class="button menu-cta nav-cta" href="<?= get_home_url(); ?>/contact/"><?= 'english' === $language ? 'Book call' : "Зв'язатися"; ?></a>
+						<a class="button menu-cta nav-cta" href="<?= esc_url($contact_url); ?>"><?= 'english' === $language ? 'Book call' : "Зв'язатися"; ?></a>
 					</nav>
 
 					<div class="header-actions">
@@ -76,7 +80,7 @@ $translated_page = $translation['translated_page'];
 							</div>
 						<?php } ?>
 
-						<a class="button menu-cta" href="<?= get_home_url(); ?>/contact/"><?= 'english' === $language ? 'Book call' : "Зв'язатися"; ?></a>
+						<a class="button menu-cta" href="<?= esc_url($contact_url); ?>"><?= 'english' === $language ? 'Book call' : "Зв'язатися"; ?></a>
 					</div>
 
 					<label class="burger" for="mobile-input" aria-label="Toggle menu"><span></span><span></span><span></span></label>
